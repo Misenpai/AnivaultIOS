@@ -7,8 +7,7 @@ struct LoginRequest: Encodable {
     let password: String
 }
 
-struct RegisterRequest: Encodable {
-    let username: String
+struct SignupRequest: Encodable {
     let email: String
     let password: String
 }
@@ -34,20 +33,38 @@ struct TokenResponse: Decodable {
 }
 
 struct UserDTO: Decodable, Identifiable {
-    let id: UUID?
     let email: String
     let username: String
     let roleId: Int
+    let emailVerified: Bool
+    let createdAt: Date?
+    let lastLogin: Date?
+    
+    var id: String { email }
 
     enum CodingKeys: String, CodingKey {
-        case id
         case email
         case username
-        case roleId = "role_id"
+        case roleId = "roleId"
+        case emailVerified = "emailVerified"
+        case createdAt = "createdAt"
+        case lastLogin = "lastLogin"
     }
 }
 
 struct ErrorResponse: Decodable {
+    let success: Bool
+    let error: ErrorDetail
+    
+    struct ErrorDetail: Decodable {
+        let code: String
+        let message: String
+        let details: String?
+    }
+}
+
+// Simple error response for basic errors
+struct SimpleErrorResponse: Decodable {
     let error: Bool
     let reason: String
 }

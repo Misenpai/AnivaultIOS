@@ -2,7 +2,7 @@ import Foundation
 
 protocol AuthServiceProtocol {
     func login(request: LoginRequest) async throws -> TokenResponse
-    func register(request: RegisterRequest) async throws -> TokenResponse
+    func signup(request: SignupRequest) async throws -> TokenResponse
 }
 
 enum AuthError: Error, LocalizedError {
@@ -12,21 +12,44 @@ enum AuthError: Error, LocalizedError {
     case serverError(String)
     case decodingError(Error)
     case unauthorized
-
+    case conflict(String)
+    case validationError(String)
+    
     var errorDescription: String? {
         switch self {
-        case .invalidURL: return "Invalid URL configuration."
-        case .networkError(let error): return "Network error: \(error.localizedDescription)"
-        case .invalidResponse: return "Invalid response from server."
-        case .serverError(let reason): return reason
-        case .decodingError: return "Failed to parse server response."
-        case .unauthorized: return "Invalid credentials."
+        case .invalidURL:
+            return "Invalid URL configuration"
+        case .networkError(let error):
+            return "Network error: \(error.localizedDescription)"
+        case .invalidResponse:
+            return "Invalid response from server"
+        case .serverError(let reason):
+            return reason
+        case .decodingError(let error):
+            return "Failed to parse server response: \(error.localizedDescription)"
+        case .unauthorized:
+            return "Invalid credentials."
+        case .conflict(let reason):
+            return reason
+        case .validationError(let reason):
+            return reason
         }
     }
 }
 
 final class AuthService: AuthServiceProtocol, @unchecked Sendable {
     private let baseURL = Configuration.apiURL
+    
+    private var decoder: JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
+    }
+    
+    private var encoder: JSONEncoder {
+        let encoder = JSONEncoder()
+        return encoder
+    }
 
     func login(request: LoginRequest) async throws -> TokenResponse {
         guard let url = URL(string: "\(baseURL)/login") else {
@@ -38,7 +61,7 @@ final class AuthService: AuthServiceProtocol, @unchecked Sendable {
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         do {
-            urlRequest.httpBody = try JSONEncoder().encode(request)
+            urlRequest.httpBody = try encoder.encode(request)
         } catch {
             throw AuthError.networkError(error)
         }
@@ -49,35 +72,11 @@ final class AuthService: AuthServiceProtocol, @unchecked Sendable {
             throw AuthError.invalidResponse
         }
 
-        if httpResponse.statusCode == 200 {
-            do {
-                let decoder = JSONDecoder()
-                // Handle date decoding if needed, standard ISO8601 is usually default but Vapor might use specific format
-                // For now assuming standard ISO8601 or double
-                // Let's check TokenResponse.swift in backend... it uses Date.
-                // Vapor default JSON encoder uses ISO8601.
-                let formatter = DateFormatter()
-                formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
-                decoder.dateDecodingStrategy = .iso8601
-
-                return try decoder.decode(TokenResponse.self, from: data)
-            } catch {
-                print("Decoding error: \(error)")
-                throw AuthError.decodingError(error)
-            }
-        } else if httpResponse.statusCode == 401 {
-            throw AuthError.unauthorized
-        } else {
-            // Try to decode error reason
-            if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
-                throw AuthError.serverError(errorResponse.reason)
-            }
-            throw AuthError.serverError("Server returned status \(httpResponse.statusCode)")
-        }
+        return try handleResponse(data: data, statusCode: httpResponse.statusCode)
     }
 
-    func register(request: RegisterRequest) async throws -> TokenResponse {
-        guard let url = URL(string: "\(baseURL)/register") else {
+    func signup(request: SignupRequest) async throws -> TokenResponse {
+        guard let url = URL(string: "\(baseURL)/signup") else {
             throw AuthError.invalidURL
         }
 
@@ -86,7 +85,7 @@ final class AuthService: AuthServiceProtocol, @unchecked Sendable {
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         do {
-            urlRequest.httpBody = try JSONEncoder().encode(request)
+            urlRequest.httpBody = try encoder.encode(request)
         } catch {
             throw AuthError.networkError(error)
         }
@@ -97,22 +96,42 @@ final class AuthService: AuthServiceProtocol, @unchecked Sendable {
             throw AuthError.invalidResponse
         }
 
-        if httpResponse.statusCode == 200 || httpResponse.statusCode == 201 {
+        return try handleResponse(data: data, statusCode: httpResponse.statusCode)
+    }
+    
+    private func handleResponse(data: Data, statusCode: Int) throws -> TokenResponse {
+        switch statusCode {
+        case 200, 201:
             do {
-                let decoder = JSONDecoder()
-                let formatter = DateFormatter()
-                formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
-                decoder.dateDecodingStrategy = .iso8601
                 return try decoder.decode(TokenResponse.self, from: data)
             } catch {
                 print("Decoding error: \(error)")
+                if let jsonString = String(data: data, encoding: .utf8) {
+                    print("Response JSON: \(jsonString)")
+                }
                 throw AuthError.decodingError(error)
             }
-        } else {
-            if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
-                throw AuthError.serverError(errorResponse.reason)
+            
+        case 400:
+            if let errorResponse = try? decoder.decode(ErrorResponse.self, from: data) {
+                throw AuthError.validationError(errorResponse.error.message)
             }
-            throw AuthError.serverError("Server returned status \(httpResponse.statusCode)")
+            throw AuthError.validationError("Invalid request data.")
+            
+        case 401:
+            throw AuthError.unauthorized
+            
+        case 409:
+            if let errorResponse = try? decoder.decode(ErrorResponse.self, from: data) {
+                throw AuthError.conflict(errorResponse.error.message)
+            }
+            throw AuthError.conflict("Email already exists.")
+            
+        default:
+            if let errorResponse = try? decoder.decode(ErrorResponse.self, from: data) {
+                throw AuthError.serverError(errorResponse.error.message)
+            }
+            throw AuthError.serverError("Server returned status \(statusCode)")
         }
     }
 }

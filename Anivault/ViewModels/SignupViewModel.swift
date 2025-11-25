@@ -33,8 +33,8 @@ class SignupViewModel: ObservableObject {
 
         Task {
             do {
-                let request = RegisterRequest(username: email, email: email, password: password)
-                let response = try await authService.register(request: request)
+                let request = SignupRequest(email: email, password: password)
+                let response = try await authService.signup(request: request)
 
                 // Save token (simplified for this task, ideally use Keychain)
                 UserDefaults.standard.set(response.accessToken, forKey: "accessToken")

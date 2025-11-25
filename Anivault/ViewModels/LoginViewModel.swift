@@ -29,8 +29,6 @@ class LoginViewModel: ObservableObject {
             do {
                 let request = LoginRequest(identifier: identifier, password: password)
                 let response = try await authService.login(request: request)
-
-                // Save token (simplified for this task, ideally use Keychain)
                 UserDefaults.standard.set(response.accessToken, forKey: "accessToken")
 
                 isAuthenticated = true
