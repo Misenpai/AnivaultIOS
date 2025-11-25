@@ -96,12 +96,8 @@ struct SignupView: View {
                 .padding(30)
             }
         }
-        .alert(isPresented: $viewModel.isAuthenticated) {
-            Alert(
-                title: Text("Success"), message: Text("Account created successfully!"),
-                dismissButton: .default(Text("OK")) {
-                    presentationMode.wrappedValue.dismiss()
-                })
+        .navigationDestination(isPresented: $viewModel.showOTPVerification) {
+            OTPVerificationView(email: viewModel.email, authService: AuthService())
         }
         .navigationBarHidden(true)
     }

@@ -11,6 +11,8 @@ class SignupViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var isAuthenticated = false
 
+    @Published var showOTPVerification = false
+
     private let authService: AuthServiceProtocol
 
     init(authService: AuthServiceProtocol) {
@@ -34,12 +36,10 @@ class SignupViewModel: ObservableObject {
         Task {
             do {
                 let request = SignupRequest(email: email, password: password)
-                let response = try await authService.signup(request: request)
+                _ = try await authService.signup(request: request)
 
-                // Save token (simplified for this task, ideally use Keychain)
-                UserDefaults.standard.set(response.accessToken, forKey: "accessToken")
-
-                isAuthenticated = true
+                // Navigate to OTP screen
+                showOTPVerification = true
             } catch {
                 errorMessage = error.localizedDescription
             }

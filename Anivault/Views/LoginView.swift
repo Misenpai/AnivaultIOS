@@ -4,7 +4,7 @@ struct LoginView: View {
     @StateObject private var viewModel = LoginViewModel(authService: AuthService())
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 NeoTheme.background
                     .ignoresSafeArea()
@@ -120,6 +120,9 @@ struct LoginView: View {
                 Alert(
                     title: Text("Success"), message: Text("You are now logged in!"),
                     dismissButton: .default(Text("OK")))
+            }
+            .navigationDestination(isPresented: $viewModel.showOTPVerification) {
+                OTPVerificationView(email: viewModel.identifier, authService: AuthService())
             }
         }
         .navigationBarHidden(true)

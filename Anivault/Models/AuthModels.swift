@@ -12,6 +12,15 @@ struct SignupRequest: Encodable {
     let password: String
 }
 
+struct VerifyCodeRequest: Encodable {
+    let email: String
+    let code: String
+}
+
+struct VerifyEmailRequest: Encodable {
+    let email: String
+}
+
 // MARK: - Responses
 
 struct TokenResponse: Decodable {
@@ -39,7 +48,7 @@ struct UserDTO: Decodable, Identifiable {
     let emailVerified: Bool
     let createdAt: Date?
     let lastLogin: Date?
-    
+
     var id: String { email }
 
     enum CodingKeys: String, CodingKey {
@@ -55,7 +64,7 @@ struct UserDTO: Decodable, Identifiable {
 struct ErrorResponse: Decodable {
     let success: Bool
     let error: ErrorDetail
-    
+
     struct ErrorDetail: Decodable {
         let code: String
         let message: String

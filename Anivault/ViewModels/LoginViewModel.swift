@@ -10,6 +10,8 @@ class LoginViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var isAuthenticated = false
 
+    @Published var showOTPVerification = false
+
     private let authService: AuthServiceProtocol
 
     init(authService: AuthServiceProtocol) {
@@ -32,6 +34,20 @@ class LoginViewModel: ObservableObject {
                 UserDefaults.standard.set(response.accessToken, forKey: "accessToken")
 
                 isAuthenticated = true
+            } catch AuthError.emailVerificationError {
+                // Handle unverified email
+                if identifier.contains("@") {
+                    // Assume identifier is email
+                    do {
+                        _ = try await authService.resendOTP(
+                            request: VerifyEmailRequest(email: identifier))
+                        showOTPVerification = true
+                    } catch {
+                        errorMessage = "Failed to resend OTP: \(error.localizedDescription)"
+                    }
+                } else {
+                    errorMessage = "Account not verified. Please login with email to verify."
+                }
             } catch {
                 errorMessage = error.localizedDescription
             }
