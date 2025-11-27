@@ -9,9 +9,17 @@ import SwiftUI
 
 @main
 struct AnivaultApp: App {
+    @StateObject private var appState = AnivaultAppState()
+
     var body: some Scene {
         WindowGroup {
-            LoginView()
+            if appState.isAuthenticated {
+                LandingView()
+                    .environmentObject(appState)
+            } else {
+                LoginView()
+                    .environmentObject(appState)
+            }
         }
     }
 }

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct LoginView: View {
+    @EnvironmentObject var appState: AnivaultAppState
     @StateObject private var viewModel = LoginViewModel(authService: AuthService())
 
     var body: some View {
@@ -119,7 +120,11 @@ struct LoginView: View {
             .alert(isPresented: $viewModel.isAuthenticated) {
                 Alert(
                     title: Text("Success"), message: Text("You are now logged in!"),
-                    dismissButton: .default(Text("OK")))
+                    dismissButton: .default(
+                        Text("OK"),
+                        action: {
+                            appState.isAuthenticated = true
+                        }))
             }
             .navigationDestination(isPresented: $viewModel.showOTPVerification) {
                 OTPVerificationView(email: viewModel.identifier, authService: AuthService())
