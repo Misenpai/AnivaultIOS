@@ -53,6 +53,7 @@ struct LandingView: View {
                                 Button(action: {
                                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                         selectedSeason = season
+                                        viewModel.fetchContent(for: season, reset: true)
                                     }
                                 }) {
                                     Text(season)
@@ -148,7 +149,7 @@ struct LandingView: View {
             .accentColor(.black)
         }
         .onAppear {
-            viewModel.fetchCurrentSeason()
+            viewModel.fetchContent(for: "Current", reset: true)
         }
     }
 

@@ -2,6 +2,9 @@ import Foundation
 
 protocol AnimeServiceProtocol {
     func fetchCurrentSeasonAnime(page: Int) async throws -> SeasonAnimeResponse
+    func fetchUpcomingSeasonAnime(page: Int) async throws -> SeasonAnimeResponse
+    func fetchSeasonAnime(year: Int, season: String, page: Int) async throws -> SeasonAnimeResponse
+    func fetchTopAnime(page: Int) async throws -> SeasonAnimeResponse
 }
 
 final class AnimeService: AnimeServiceProtocol {
@@ -13,7 +16,24 @@ final class AnimeService: AnimeServiceProtocol {
     }
 
     func fetchCurrentSeasonAnime(page: Int) async throws -> SeasonAnimeResponse {
-        guard let url = URL(string: "\(baseURL)/anime/season/now?page=\(page)") else {
+        return try await fetch(endpoint: "/anime/season/now?page=\(page)")
+    }
+
+    func fetchUpcomingSeasonAnime(page: Int) async throws -> SeasonAnimeResponse {
+        return try await fetch(endpoint: "/anime/season/upcoming?page=\(page)")
+    }
+
+    func fetchSeasonAnime(year: Int, season: String, page: Int) async throws -> SeasonAnimeResponse
+    {
+        return try await fetch(endpoint: "/anime/season/\(year)/\(season)?page=\(page)")
+    }
+
+    func fetchTopAnime(page: Int) async throws -> SeasonAnimeResponse {
+        return try await fetch(endpoint: "/anime/top?page=\(page)")
+    }
+
+    private func fetch<T: Decodable>(endpoint: String) async throws -> T {
+        guard let url = URL(string: "\(baseURL)\(endpoint)") else {
             throw AuthError.invalidURL
         }
 
@@ -40,6 +60,6 @@ final class AnimeService: AnimeServiceProtocol {
         }
 
         let decoder = JSONDecoder()
-        return try decoder.decode(SeasonAnimeResponse.self, from: data)
+        return try decoder.decode(T.self, from: data)
     }
 }

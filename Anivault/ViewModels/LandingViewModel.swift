@@ -17,11 +17,14 @@ class LandingViewModel: ObservableObject {
         self.animeService = container.animeService
     }
 
-    func fetchCurrentSeason(reset: Bool = false) {
+    private var currentTab: String = "Current"
+
+    func fetchContent(for tab: String, reset: Bool = false) {
         if reset {
             currentPage = 1
             hasNextPage = true
             animeList = []
+            currentTab = tab
         }
 
         guard !isFetching && hasNextPage else { return }
@@ -34,7 +37,22 @@ class LandingViewModel: ObservableObject {
 
         Task {
             do {
-                let response = try await animeService.fetchCurrentSeasonAnime(page: currentPage)
+                let response: SeasonAnimeResponse
+                switch tab {
+                case "Last":
+                    let (year, season) = getLastSeason()
+                    response = try await animeService.fetchSeasonAnime(
+                        year: year, season: season, page: currentPage)
+                case "Next":
+                    response = try await animeService.fetchUpcomingSeasonAnime(page: currentPage)
+                case "Archive":
+                    response = try await animeService.fetchTopAnime(page: currentPage)
+                case "Current":
+                    fallthrough
+                default:
+                    response = try await animeService.fetchCurrentSeasonAnime(page: currentPage)
+                }
+
                 if reset {
                     self.animeList = response.data
                 } else {
@@ -53,12 +71,42 @@ class LandingViewModel: ObservableObject {
         }
     }
 
+    private func getLastSeason() -> (Int, String) {
+        let date = Date()
+        let calendar = Calendar.current
+        let year = calendar.component(.year, from: date)
+        let month = calendar.component(.month, from: date)
+
+        // Seasons:
+        // Winter: Jan, Feb, Mar (1, 2, 3)
+        // Spring: Apr, May, Jun (4, 5, 6)
+        // Summer: Jul, Aug, Sep (7, 8, 9)
+        // Fall: Oct, Nov, Dec (10, 11, 12)
+
+        // Current Season -> Last Season
+        // Winter (1-3) -> Fall (Prev Year)
+        // Spring (4-6) -> Winter (Current Year)
+        // Summer (7-9) -> Spring (Current Year)
+        // Fall (10-12) -> Summer (Current Year)
+
+        switch month {
+        case 1...3:  // Winter -> Last was Fall of previous year
+            return (year - 1, "fall")
+        case 4...6:  // Spring -> Last was Winter
+            return (year, "winter")
+        case 7...9:  // Summer -> Last was Spring
+            return (year, "spring")
+        default:  // Fall -> Last was Summer
+            return (year, "summer")
+        }
+    }
+
     func loadMoreContent(currentItem item: Anime) {
         let thresholdIndex = self.animeList.index(self.animeList.endIndex, offsetBy: -5)
         if let itemIndex = self.animeList.firstIndex(where: { $0.id == item.id }),
             itemIndex >= thresholdIndex
         {
-            fetchCurrentSeason()
+            fetchContent(for: currentTab)
         }
     }
 }
