@@ -4,18 +4,13 @@ struct LandingView: View {
     @State private var selectedTab: Int = 0
     @State private var selectedSeason: String = "Current"
     private let seasons = ["Last", "Current", "Next", "Archive"]
-
-    // Removed init() with UIKit dependency for now
-
     var body: some View {
         VStack(spacing: 0) {
-            // Header
             ZStack {
-                Color(red: 0.996, green: 0.953, blue: 0.780)  // Match background color
+                Color(red: 0.996, green: 0.953, blue: 0.780)
                     .ignoresSafeArea()
 
                 HStack {
-                    // Left Corner
                     HStack(spacing: 12) {
                         Circle()
                             .fill(Color.gray.opacity(0.3))
@@ -30,7 +25,6 @@ struct LandingView: View {
                     Spacer()
                 }
 
-                // Center Title
                 Text(pageTitle)
                     .font(.system(size: 24, weight: .bold, design: .monospaced))
                     .foregroundColor(.black)
@@ -44,46 +38,46 @@ struct LandingView: View {
             )
 
             TabView(selection: $selectedTab) {
-                // Home Tab
-                // Home Tab
                 ZStack {
                     Color(red: 0.996, green: 0.953, blue: 0.780).ignoresSafeArea()
 
                     VStack(spacing: 0) {
-                        // Season Navigation Tabs
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) {
-                                ForEach(seasons, id: \.self) { season in
-                                    Button(action: {
+                        HStack(spacing: 8) {
+                            ForEach(seasons, id: \.self) { season in
+                                Button(action: {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                         selectedSeason = season
-                                    }) {
-                                        Text(season)
-                                            .font(
-                                                .system(
-                                                    size: 16, weight: .bold, design: .monospaced)
-                                            )
-                                            .foregroundColor(.black)
-                                            .padding(.horizontal, 20)
-                                            .padding(.vertical, 10)
-                                            .background(
-                                                selectedSeason == season
-                                                    ? NeoTheme.primary : Color.white
-                                            )
-                                            .cornerRadius(8)
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 8)
-                                                    .stroke(Color.black, lineWidth: 2)
-                                            )
-                                            .shadow(
-                                                color: selectedSeason == season
-                                                    ? Color.black : Color.clear, radius: 0, x: 4,
-                                                y: 4)
                                     }
+                                }) {
+                                    Text(season)
+                                        .font(.system(size: 14, weight: .bold, design: .monospaced))
+                                        .foregroundColor(.black)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 10)
+                                        .background(
+                                            selectedSeason == season
+                                                ? NeoTheme.primary : Color.white
+                                        )
+                                        .cornerRadius(8)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(Color.black, lineWidth: 2)
+                                        )
+                                        .offset(
+                                            x: selectedSeason == season ? 2 : 4,
+                                            y: selectedSeason == season ? 2 : 4
+                                        )
+                                        .shadow(
+                                            color: .black,
+                                            radius: 0,
+                                            x: selectedSeason == season ? 0 : 2,
+                                            y: selectedSeason == season ? 0 : 2
+                                        )
                                 }
                             }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 20)
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 20)
 
                         Spacer()
                     }
@@ -93,7 +87,6 @@ struct LandingView: View {
                 }
                 .tag(0)
 
-                // Search Tab
                 ZStack {
                     Color(red: 0.996, green: 0.953, blue: 0.780).ignoresSafeArea()
                 }
@@ -102,7 +95,6 @@ struct LandingView: View {
                 }
                 .tag(1)
 
-                // Library Tab
                 ZStack {
                     Color(red: 0.996, green: 0.953, blue: 0.780).ignoresSafeArea()
                 }
@@ -111,7 +103,6 @@ struct LandingView: View {
                 }
                 .tag(2)
 
-                // Profile Tab
                 ZStack {
                     Color(red: 0.996, green: 0.953, blue: 0.780).ignoresSafeArea()
                 }
@@ -120,7 +111,7 @@ struct LandingView: View {
                 }
                 .tag(3)
             }
-            .accentColor(.black)  // Selected tab color
+            .accentColor(.black)
         }
     }
 

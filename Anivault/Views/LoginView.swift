@@ -1,8 +1,15 @@
 import SwiftUI
 
 struct LoginView: View {
-    @EnvironmentObject var appState: AnivaultAppState
-    @StateObject private var viewModel = LoginViewModel(authService: AuthService())
+    @ObservedObject var appState: AnivaultAppState
+    @StateObject private var viewModel: LoginViewModel
+
+    init(container: DIContainer, coordinator: AppCoordinator, appState: AnivaultAppState) {
+        self.appState = appState
+        _viewModel = StateObject(
+            wrappedValue: LoginViewModel(
+                container: container, coordinator: coordinator, appState: appState))
+    }
 
     var body: some View {
         NavigationStack {
@@ -107,7 +114,9 @@ struct LoginView: View {
                         }
                     }
 
-                    NavigationLink(destination: SignupView()) {
+                    Button(action: {
+                        viewModel.navigateToSignup()
+                    }) {
                         Text("Don't have an account? Sign up")
                             .font(.system(size: 14, weight: .bold, design: .monospaced))
                             .underline()
@@ -117,17 +126,14 @@ struct LoginView: View {
                 }
                 .padding(30)
             }
-            .alert(isPresented: $viewModel.isAuthenticated) {
+            .alert(isPresented: $appState.isAuthenticated) {
                 Alert(
                     title: Text("Success"), message: Text("You are now logged in!"),
                     dismissButton: .default(
                         Text("OK"),
                         action: {
-                            appState.isAuthenticated = true
+                            // Handled by coordinator/appState
                         }))
-            }
-            .navigationDestination(isPresented: $viewModel.showOTPVerification) {
-                OTPVerificationView(email: viewModel.identifier, authService: AuthService())
             }
         }
         .navigationBarHidden(true)
@@ -136,6 +142,9 @@ struct LoginView: View {
 
 struct LoginView_Previews: PreviewProvider {
     static var previews: some View {
-        LoginView()
+        let container = DIContainer()
+        let coordinator = AppCoordinator()
+        let appState = AnivaultAppState()
+        return LoginView(container: container, coordinator: coordinator, appState: appState)
     }
 }

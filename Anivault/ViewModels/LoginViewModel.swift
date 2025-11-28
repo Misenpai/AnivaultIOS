@@ -8,14 +8,17 @@ class LoginViewModel: ObservableObject {
     @Published var password = ""
     @Published var isLoading = false
     @Published var errorMessage: String?
-    @Published var isAuthenticated = false
-
-    @Published var showOTPVerification = false
 
     private let authService: AuthServiceProtocol
+    private let tokenManager: TokenManagerProtocol
+    private let coordinator: AppCoordinator
+    private let appState: AnivaultAppState
 
-    init(authService: AuthServiceProtocol) {
-        self.authService = authService
+    init(container: DIContainer, coordinator: AppCoordinator, appState: AnivaultAppState) {
+        self.authService = container.authService
+        self.tokenManager = container.tokenManager
+        self.coordinator = coordinator
+        self.appState = appState
     }
 
     func login() {
@@ -31,9 +34,17 @@ class LoginViewModel: ObservableObject {
             do {
                 let request = LoginRequest(identifier: identifier, password: password)
                 let response = try await authService.login(request: request)
-                UserDefaults.standard.set(response.accessToken, forKey: "accessToken")
 
-                isAuthenticated = true
+                // Save token securely
+                _ = tokenManager.save(token: response.accessToken, for: "accessToken")
+
+                // Update AppState
+                appState.isAuthenticated = true
+                appState.currentUser = response.user
+
+                // Navigate to Home
+                coordinator.setRoot(.home)
+
             } catch AuthError.emailVerificationError {
                 // Handle unverified email
                 if identifier.contains("@") {
@@ -41,7 +52,7 @@ class LoginViewModel: ObservableObject {
                     do {
                         _ = try await authService.resendOTP(
                             request: VerifyEmailRequest(email: identifier))
-                        showOTPVerification = true
+                        coordinator.navigate(to: .otpVerification(email: identifier))
                     } catch {
                         errorMessage = "Failed to resend OTP: \(error.localizedDescription)"
                     }
@@ -53,5 +64,9 @@ class LoginViewModel: ObservableObject {
             }
             isLoading = false
         }
+    }
+
+    func navigateToSignup() {
+        coordinator.navigate(to: .signup)
     }
 }

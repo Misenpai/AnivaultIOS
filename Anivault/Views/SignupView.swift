@@ -1,8 +1,13 @@
 import SwiftUI
 
 struct SignupView: View {
-    @StateObject private var viewModel = SignupViewModel(authService: AuthService())
+    @StateObject private var viewModel: SignupViewModel
     @Environment(\.presentationMode) var presentationMode
+
+    init(container: DIContainer, coordinator: AppCoordinator) {
+        _viewModel = StateObject(
+            wrappedValue: SignupViewModel(container: container, coordinator: coordinator))
+    }
 
     var body: some View {
         ZStack {
@@ -84,7 +89,7 @@ struct SignupView: View {
                     }
 
                     Button(action: {
-                        presentationMode.wrappedValue.dismiss()
+                        viewModel.navigateToLogin()
                     }) {
                         Text("Already have an account? Log in")
                             .font(.system(size: 14, weight: .bold, design: .monospaced))
@@ -96,15 +101,12 @@ struct SignupView: View {
                 .padding(30)
             }
         }
-        .navigationDestination(isPresented: $viewModel.showOTPVerification) {
-            OTPVerificationView(email: viewModel.email, authService: AuthService())
-        }
         .navigationBarHidden(true)
     }
 }
 
 struct SignupView_Previews: PreviewProvider {
     static var previews: some View {
-        SignupView()
+        SignupView(container: DIContainer(), coordinator: AppCoordinator())
     }
 }
