@@ -1,9 +1,15 @@
 import SwiftUI
 
 struct LandingView: View {
+    @StateObject private var viewModel: LandingViewModel
     @State private var selectedTab: Int = 0
     @State private var selectedSeason: String = "Current"
     private let seasons = ["Last", "Current", "Next", "Archive"]
+
+    init(container: DIContainer = DIContainer()) {
+        _viewModel = StateObject(wrappedValue: LandingViewModel(container: container))
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             ZStack {
@@ -79,7 +85,35 @@ struct LandingView: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 20)
 
-                        Spacer()
+                        if viewModel.isLoading && viewModel.animeList.isEmpty {
+                            ProgressView()
+                                .scaleEffect(1.5)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else if let error = viewModel.errorMessage, viewModel.animeList.isEmpty {
+                            Text(error)
+                                .foregroundColor(.red)
+                                .padding()
+                        } else {
+                            ScrollView {
+                                LazyVGrid(
+                                    columns: [GridItem(.flexible()), GridItem(.flexible())],
+                                    spacing: 16
+                                ) {
+                                    ForEach(viewModel.animeList) { anime in
+                                        AnimeCard(anime: anime)
+                                            .onAppear {
+                                                viewModel.loadMoreContent(currentItem: anime)
+                                            }
+                                    }
+                                }
+                                .padding(16)
+
+                                if viewModel.isLoading && !viewModel.animeList.isEmpty {
+                                    ProgressView()
+                                        .padding()
+                                }
+                            }
+                        }
                     }
                 }
                 .tabItem {
@@ -113,6 +147,9 @@ struct LandingView: View {
             }
             .accentColor(.black)
         }
+        .onAppear {
+            viewModel.fetchCurrentSeason()
+        }
     }
 
     private var pageTitle: String {
@@ -123,6 +160,57 @@ struct LandingView: View {
         case 3: return "Profile"
         default: return ""
         }
+    }
+}
+
+struct AnimeCard: View {
+    let anime: Anime
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            AsyncImage(url: URL(string: anime.images.jpg.imageUrl)) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } placeholder: {
+                Color.gray.opacity(0.3)
+            }
+            .frame(height: 200)
+            .clipped()
+            .overlay(
+                Rectangle()
+                    .stroke(Color.black, lineWidth: 2)
+            )
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(anime.title)
+                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+                    .foregroundColor(.black)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+
+                if let score = anime.score {
+                    Text("Score: \(String(format: "%.1f", score))")
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundColor(.gray)
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white)
+            .overlay(
+                Rectangle()
+                    .frame(height: 2)
+                    .foregroundColor(.black),
+                alignment: .top
+            )
+        }
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.black, lineWidth: 2)
+        )
+        .shadow(color: .black, radius: 0, x: 4, y: 4)
     }
 }
 

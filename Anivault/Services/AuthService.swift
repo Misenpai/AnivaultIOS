@@ -57,7 +57,7 @@ final class AuthService: AuthServiceProtocol, @unchecked Sendable {
     }
 
     func login(request: LoginRequest) async throws -> TokenResponse {
-        guard let url = URL(string: "\(baseURL)/login") else {
+        guard let url = URL(string: "\(baseURL)/auth/login") else {
             throw AuthError.invalidURL
         }
 
@@ -81,7 +81,7 @@ final class AuthService: AuthServiceProtocol, @unchecked Sendable {
     }
 
     func signup(request: SignupRequest) async throws -> TokenResponse {
-        guard let url = URL(string: "\(baseURL)/signup") else {
+        guard let url = URL(string: "\(baseURL)/auth/signup") else {
             throw AuthError.invalidURL
         }
 
@@ -105,7 +105,7 @@ final class AuthService: AuthServiceProtocol, @unchecked Sendable {
     }
 
     func verifyEmail(request: VerifyCodeRequest) async throws -> Bool {
-        guard let url = URL(string: "\(baseURL)/verify-code") else {
+        guard let url = URL(string: "\(baseURL)/auth/verify-code") else {
             throw AuthError.invalidURL
         }
 
@@ -129,7 +129,7 @@ final class AuthService: AuthServiceProtocol, @unchecked Sendable {
     }
 
     func resendOTP(request: VerifyEmailRequest) async throws -> Bool {
-        guard let url = URL(string: "\(baseURL)/verify-email") else {
+        guard let url = URL(string: "\(baseURL)/auth/verify-email") else {
             throw AuthError.invalidURL
         }
 
